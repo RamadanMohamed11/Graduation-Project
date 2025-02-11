@@ -1,0 +1,47 @@
+
+ROM used:   467/2048 (23%)
+            467/2048 (23%) including unused fragments
+
+            0.6 Average locations per line
+            4.4 Average locations per statement
+
+RAM used:   26/224 (12%) at main() level
+            30/224 (13%) worst case
+
+Stack used: 2 worst case (1 in main + 1 for interrupts)
+Stack size: 8
+
+Lines Stmts  %   Files
+----- ----- ---  -----
+  264   105 100  S01_main.c
+  518     0   0  C:\Program Files (x86)\PICC\Devices\16F628A.h
+----- -----
+  782   105 Total
+
+Page ROM  %  RAM   Vol Diff  Functions:
+---- --- --- ---   --- ----  ----------
+0     21   4    1             @delay_ms1
+0     50  11    2   396  4.7  timer0_isr
+0    349  75    2  3064 11.9  MAIN
+ Inline         0             @cinit1
+
+Program metrics:
+    Functions               2
+    Statements              105
+    Comments                173
+    Volume (V)              3761
+    Difficulty (D)          16.5
+    Effort to implement (E) 62100
+    Time to implement (T)   58 minutes
+    Est Delivered Bugs (B)  1
+    Cyclomatic Complexity   19
+    Maintainability (MI)    114
+
+ Segment     Used  Free
+-----------  ----  ----
+00000-00003     4  0  
+00004-0002E    43  0  
+0002F-007FF   420  1581  
+
+
+

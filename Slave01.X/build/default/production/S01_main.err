@@ -1,0 +1,5 @@
+D:\College\Graduation Project\Compiler\current_working_code\works03\Slave01.X\S01_main.c:23:13:  Warning#225  Duplicate #define
+D:\College\Graduation Project\Compiler\current_working_code\works03\Slave01.X\S01_main.c:24:14:  Warning#225  Duplicate #define
+      Memory usage:   ROM=23%      RAM=12% - 13%
+      0 Errors,  2 Warnings.
+Build Successful.
