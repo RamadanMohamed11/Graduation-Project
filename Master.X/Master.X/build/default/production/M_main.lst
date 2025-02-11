@@ -1,0 +1,776 @@
+CCS PCM C Compiler, Version 5.015, 5967               10-Feb-25 12:48
+
+               Filename:   D:\Elevator\bus\code\current_working_code\works_soon_04\Master.X\build\default\production\M_main.lst
+
+               ROM used:   465 words (23%)
+                           Largest free fragment is 1583
+               RAM used:   58 (26%) at main() level
+                           61 (27%) worst case
+               Stack used: 2 locations (1 in main + 1 for interrupts)
+               Stack size: 8
+
+*
+0000:  MOVLW  01
+0001:  MOVWF  0A
+0002:  GOTO   11F
+0003:  NOP
+0004:  MOVWF  7F
+0005:  SWAPF  03,W
+0006:  CLRF   03
+0007:  MOVWF  21
+0008:  MOVF   7F,W
+0009:  MOVWF  20
+000A:  MOVF   0A,W
+000B:  MOVWF  27
+000C:  CLRF   0A
+000D:  SWAPF  20,F
+000E:  MOVF   04,W
+000F:  MOVWF  22
+0010:  MOVF   77,W
+0011:  MOVWF  23
+0012:  MOVF   78,W
+0013:  MOVWF  24
+0014:  MOVF   79,W
+0015:  MOVWF  25
+0016:  MOVF   7A,W
+0017:  MOVWF  26
+0018:  BCF    03.7
+0019:  BCF    03.5
+001A:  BTFSS  0B.5
+001B:  GOTO   01E
+001C:  BTFSC  0B.2
+001D:  GOTO   02F
+001E:  MOVF   22,W
+001F:  MOVWF  04
+0020:  MOVF   23,W
+0021:  MOVWF  77
+0022:  MOVF   24,W
+0023:  MOVWF  78
+0024:  MOVF   25,W
+0025:  MOVWF  79
+0026:  MOVF   26,W
+0027:  MOVWF  7A
+0028:  MOVF   27,W
+0029:  MOVWF  0A
+002A:  SWAPF  21,W
+002B:  MOVWF  03
+002C:  SWAPF  7F,F
+002D:  SWAPF  7F,W
+002E:  RETFIE
+.................... /*  
+....................  * Master Node 
+....................  * File:   M_main.c 
+....................  * Author: Hesham Ahmed 
+....................  * Edit date: 2, 2, 2024 
+....................  * Version:05 
+....................  */ 
+....................  
+.................... /*------------------------------ Includes ------------------------------*/ 
+.................... #include <16F628A.h> 
+.................... //////////// Standard Header file for the PIC16F628A device //////////////// 
+.................... /////////////////////////////////////////////////////////////////////////// 
+.................... ////        (C) Copyright 1996, 2013 Custom Computer Services          //// 
+.................... //// This source code may only be used by licensed users of the CCS C  //// 
+.................... //// compiler.  This source code may only be distributed to other      //// 
+.................... //// licensed users of the CCS C compiler.  No other use, reproduction //// 
+.................... //// or distribution is permitted without written permission.          //// 
+.................... //// Derivative programs created using this software in object code    //// 
+.................... //// form are not restricted in any way.                               //// 
+.................... /////////////////////////////////////////////////////////////////////////// 
+.................... #device PIC16F628A 
+....................  
+.................... #list 
+....................  
+.................... #fuses INTRC_IO, NOWDT, NOPROTECT, NOMCLR ,NOLVP 
+.................... #use delay(CLOCK=4000000) 
+*
+010A:  MOVLW  55
+010B:  MOVWF  04
+010C:  BCF    03.7
+010D:  MOVF   00,W
+010E:  BTFSC  03.2
+010F:  GOTO   11E
+0110:  MOVLW  01
+0111:  MOVWF  78
+0112:  CLRF   77
+0113:  DECFSZ 77,F
+0114:  GOTO   113
+0115:  DECFSZ 78,F
+0116:  GOTO   112
+0117:  MOVLW  4A
+0118:  MOVWF  77
+0119:  DECFSZ 77,F
+011A:  GOTO   119
+011B:  GOTO   11C
+011C:  DECFSZ 00,F
+011D:  GOTO   110
+011E:  RETURN
+....................  
+.................... #define OPTION *((volatile unsigned char*)0x81) 
+.................... #define RBPU    7 
+.................... /*------------------------- Macros Declaration -------------------------*/ 
+....................  
+.................... /*---^^ Master Configurations ^^---*/ 
+.................... //Timer setting 
+.................... #define TIMER_PRELOAD   206 
+.................... #define PRESCALER   T0_DIV_1 //1 
+....................  
+.................... //Idle pulse width = LONG_PULSE + 2 
+.................... #define LONG_PULSE  49 
+....................  
+.................... //Number of floors 
+.................... #define SLAVES          16 
+....................  
+.................... //the display bits number 
+.................... #define DISPLAY_BITS 4 
+....................  
+.................... //End of the Frame in half cycle 
+.................... #define MASTER_SLAVE_FRAME_END  (4*SLAVES*2+LONG_PULSE) 
+.................... #define DISPLAY_FRAME_END       (4*SLAVES*2 + LONG_PULSE + DISPLAY_BITS * 2) 
+....................  
+.................... /*---^^^^^^^^^^^^^^^^^^^^^^^^^^^^---*/ 
+....................  
+.................... /*logical states*/ 
+.................... #define LOW     0 
+.................... #define HIGH    1 
+....................  
+.................... #define TRUE        1 
+.................... #define FALSE       0 
+....................  
+.................... /**/ 
+.................... #define UP_REQUEST      0 
+.................... #define DOWN_REQUEST    1 
+....................  
+....................  
+.................... /*Master clock input PIN*/ 
+.................... #define M_CLK_PIN PIN_A0 
+....................  
+.................... /*Master Read PIN*/ 
+.................... #define M_R_PIN   PIN_A1 
+....................  
+.................... /*Master Write PIN*/ 
+.................... #define M_W_PIN   PIN_A2  
+....................  
+.................... #define PORTA_DIRECTION 0X00 
+....................  
+.................... #define UP_PIN      PIN_B0 
+.................... #define STOP_PIN    PIN_B1 
+.................... #define DOWN_PIN    PIN_B2 
+.................... #define TEST_LED    PIN_B3 
+.................... #define PORTB_PULLUP    0X07 
+.................... #define PORTB_DIRECTION 0X07 
+....................  
+....................  
+.................... /*-------------------- Macro Functions Declaration ---------------------*/ 
+.................... /*Get bit*/ 
+.................... #define GET_BIT(Reg, bit) ((Reg >> bit)&1) 
+.................... /*Clear bit*/ 
+.................... #define CLEAR_BIT(Reg, bit) Reg = Reg&(~(1 << bit)) 
+....................  
+.................... /*----------------------- Data Types Declaration -----------------------*/ 
+.................... typedef unsigned char u8; 
+.................... typedef signed char s8; 
+.................... typedef int16 s16; 
+....................  
+.................... /*-------------------- Global Variables Definition ---------------------*/ 
+.................... //master slave data registering 
+.................... volatile u8 order_from_slave[SLAVES][2]; 
+....................  
+.................... //current floor number 
+.................... u8 floorNumber  = 0; 
+.................... u8 preFloor = floorNumber; 
+.................... //Timer overflow counter 
+.................... volatile s16 overflowCount = 0; 
+....................  
+.................... //Cycle counter 
+.................... volatile u8 cycleNumber = -1; 
+....................  
+.................... //shift count 
+.................... volatile u8 shiftCount = DISPLAY_BITS - 1; 
+....................  
+.................... //End of the frame in half cycle 
+.................... volatile s16 masterSlaveFrameEnd = MASTER_SLAVE_FRAME_END; 
+.................... volatile s16 displayFrameEnd = DISPLAY_FRAME_END; 
+....................  
+.................... // 
+.................... u8 stopFlag = TRUE; 
+.................... /*-------------------------- APIs Definition ---------------------------*/ 
+.................... void setPullup_b() 
+.................... { 
+....................     CLEAR_BIT(OPTION, RBPU); 
+*
+0106:  BSF    03.5
+0107:  BCF    01.7
+0108:  BCF    03.5
+0109:  GOTO   162 (RETURN)
+.................... } 
+....................  
+.................... /*-------------------------- ISRs Definition ---------------------------*/ 
+.................... #int_TIMER0 
+.................... void timer0_isr(void) 
+.................... { 
+....................     set_timer0(TIMER_PRELOAD); 
+*
+002F:  MOVLW  CE
+0030:  MOVWF  01
+....................     if( (overflowCount >= LONG_PULSE) && (overflowCount < masterSlaveFrameEnd) ) 
+0031:  MOVF   4B,F
+0032:  BTFSS  03.2
+0033:  GOTO   038
+0034:  MOVF   4A,W
+0035:  SUBLW  30
+0036:  BTFSC  03.0
+0037:  GOTO   0A2
+0038:  MOVF   4B,W
+0039:  SUBWF  4F,W
+003A:  BTFSS  03.0
+003B:  GOTO   0A2
+003C:  BTFSS  03.2
+003D:  GOTO   042
+003E:  MOVF   4E,W
+003F:  SUBWF  4A,W
+0040:  BTFSC  03.0
+0041:  GOTO   0A2
+....................     {  
+....................         output_toggle(M_CLK_PIN); 
+0042:  BSF    03.5
+0043:  BCF    05.0
+0044:  MOVLW  01
+0045:  BCF    03.5
+0046:  XORWF  05,F
+....................         if((overflowCount%2==1)) // Falling Edge 
+0047:  MOVF   4A,W
+0048:  ANDLW  01
+0049:  MOVWF  56
+004A:  CLRF   57
+004B:  DECFSZ 56,W
+004C:  GOTO   06D
+004D:  MOVF   57,F
+004E:  BTFSS  03.2
+004F:  GOTO   06D
+....................         { 
+....................             //it was high after the toggle will be low 
+....................             cycleNumber++; 
+0050:  INCF   4C,F
+....................             /*Write*/ 
+....................             if(cycleNumber >= (SLAVES*2)) 
+0051:  MOVF   4C,W
+0052:  SUBLW  1F
+0053:  BTFSC  03.0
+0054:  GOTO   069
+....................             { 
+....................                 // Master Write 
+....................                 if(order_from_slave[((u8)(cycleNumber/2)-SLAVES)][(cycleNumber%2)]==LOW) 
+0055:  BCF    03.0
+0056:  RRF    4C,W
+0057:  ADDLW  F0
+0058:  MOVWF  77
+0059:  BCF    03.0
+005A:  RLF    77,W
+005B:  MOVWF  56
+005C:  MOVF   4C,W
+005D:  ANDLW  01
+005E:  ADDWF  56,W
+005F:  ADDLW  28
+0060:  MOVWF  04
+0061:  BCF    03.7
+0062:  MOVF   00,F
+0063:  BTFSS  03.2
+0064:  GOTO   069
+....................                 { 
+....................                     //turn Write transistor on 
+....................                     output_high(M_W_PIN);  
+0065:  BSF    03.5
+0066:  BCF    05.2
+0067:  BCF    03.5
+0068:  BSF    05.2
+....................                 } 
+....................             } 
+....................                 //making read pin input 
+....................                 output_float(M_R_PIN); 
+0069:  BSF    03.5
+006A:  BSF    05.1
+....................         } 
+006B:  GOTO   0A0
+006C:  BCF    03.5
+....................         else if((overflowCount%2==0)) // Rising Edge 
+006D:  MOVF   4A,W
+006E:  ANDLW  01
+006F:  MOVWF  56
+0070:  CLRF   57
+0071:  MOVF   56,F
+0072:  BTFSS  03.2
+0073:  GOTO   09F
+0074:  MOVF   57,F
+0075:  BTFSS  03.2
+0076:  GOTO   09F
+....................         { 
+....................             //it was low after the toggle will be high 
+....................             /*Read*/ 
+....................             if(cycleNumber < (SLAVES*2)) 
+0077:  MOVF   4C,W
+0078:  SUBLW  1F
+0079:  BTFSS  03.0
+007A:  GOTO   09B
+....................             { 
+....................                 if(input(M_R_PIN) == LOW) 
+007B:  BSF    03.5
+007C:  BSF    05.1
+007D:  BCF    03.5
+007E:  BTFSC  05.1
+007F:  GOTO   095
+....................                 {   
+....................                     if(((cycleNumber/2) != floorNumber)||(!stopFlag)) 
+0080:  BCF    03.0
+0081:  RRF    4C,W
+0082:  SUBWF  48,W
+0083:  BTFSS  03.2
+0084:  GOTO   088
+0085:  MOVF   52,F
+0086:  BTFSS  03.2
+0087:  GOTO   095
+....................                     { 
+....................                         order_from_slave[(cycleNumber/2)][(cycleNumber%2)]=LOW;    
+0088:  BCF    03.0
+0089:  RRF    4C,W
+008A:  MOVWF  77
+008B:  BCF    03.0
+008C:  RLF    77,W
+008D:  MOVWF  56
+008E:  MOVF   4C,W
+008F:  ANDLW  01
+0090:  ADDWF  56,W
+0091:  ADDLW  28
+0092:  MOVWF  04
+0093:  BCF    03.7
+0094:  CLRF   00
+....................                     } 
+....................                 } 
+....................                 //order_from_slave[cycleNumber]=input(M_R_PIN); 
+....................                 //Recharge the read capacitor 
+....................                 output_drive(M_R_PIN); 
+0095:  BSF    03.5
+0096:  BCF    05.1
+....................                 output_high(M_R_PIN); 
+0097:  BCF    05.1
+0098:  BCF    03.5
+0099:  BSF    05.1
+....................             } 
+009A:  GOTO   09F
+....................             else 
+....................             { 
+....................                 //turn Write transistor off 
+....................                 output_low(M_W_PIN); 
+009B:  BSF    03.5
+009C:  BCF    05.2
+009D:  BCF    03.5
+009E:  BCF    05.2
+009F:  BSF    03.5
+....................             } 
+....................              
+....................         } 
+....................     } 
+00A0:  GOTO   0FF
+00A1:  BCF    03.5
+....................     else if((overflowCount >= masterSlaveFrameEnd) && (overflowCount < displayFrameEnd)) 
+00A2:  MOVF   4F,W
+00A3:  SUBWF  4B,W
+00A4:  BTFSS  03.0
+00A5:  GOTO   0E7
+00A6:  BTFSS  03.2
+00A7:  GOTO   0AC
+00A8:  MOVF   4E,W
+00A9:  SUBWF  4A,W
+00AA:  BTFSS  03.0
+00AB:  GOTO   0E7
+00AC:  MOVF   4B,W
+00AD:  SUBWF  51,W
+00AE:  BTFSS  03.0
+00AF:  GOTO   0E7
+00B0:  BTFSS  03.2
+00B1:  GOTO   0B6
+00B2:  MOVF   50,W
+00B3:  SUBWF  4A,W
+00B4:  BTFSC  03.0
+00B5:  GOTO   0E7
+....................     { 
+....................         output_toggle(M_CLK_PIN); 
+00B6:  BSF    03.5
+00B7:  BCF    05.0
+00B8:  MOVLW  01
+00B9:  BCF    03.5
+00BA:  XORWF  05,F
+....................         if(overflowCount%2==1) // Falling Edge 
+00BB:  MOVF   4A,W
+00BC:  ANDLW  01
+00BD:  MOVWF  56
+00BE:  CLRF   57
+00BF:  DECFSZ 56,W
+00C0:  GOTO   0D8
+00C1:  MOVF   57,F
+00C2:  BTFSS  03.2
+00C3:  GOTO   0D8
+....................         { 
+....................             if(GET_BIT(floorNumber, shiftCount) == LOW) 
+00C4:  MOVF   48,W
+00C5:  MOVWF  77
+00C6:  MOVF   4D,W
+00C7:  MOVWF  78
+00C8:  BTFSC  03.2
+00C9:  GOTO   0CE
+00CA:  BCF    03.0
+00CB:  RRF    77,F
+00CC:  DECFSZ 78,F
+00CD:  GOTO   0CA
+00CE:  MOVF   77,W
+00CF:  ANDLW  01
+00D0:  BTFSS  03.2
+00D1:  GOTO   0D6
+....................             { 
+....................                 output_high(M_W_PIN); 
+00D2:  BSF    03.5
+00D3:  BCF    05.2
+00D4:  BCF    03.5
+00D5:  BSF    05.2
+....................             } 
+....................             shiftCount--; 
+00D6:  DECF   4D,F
+....................         } 
+00D7:  GOTO   0E6
+....................         else if(overflowCount%2==0) // Rising Edge 
+00D8:  MOVF   4A,W
+00D9:  ANDLW  01
+00DA:  MOVWF  56
+00DB:  CLRF   57
+00DC:  MOVF   56,F
+00DD:  BTFSS  03.2
+00DE:  GOTO   0E6
+00DF:  MOVF   57,F
+00E0:  BTFSS  03.2
+00E1:  GOTO   0E6
+....................         { 
+....................              output_low(M_W_PIN); 
+00E2:  BSF    03.5
+00E3:  BCF    05.2
+00E4:  BCF    03.5
+00E5:  BCF    05.2
+....................         } 
+....................     } 
+00E6:  GOTO   0FE
+....................     else if(overflowCount == displayFrameEnd) 
+00E7:  MOVF   50,W
+00E8:  SUBWF  4A,W
+00E9:  BTFSS  03.2
+00EA:  GOTO   0FE
+00EB:  MOVF   51,W
+00EC:  SUBWF  4B,W
+00ED:  BTFSS  03.2
+00EE:  GOTO   0FE
+....................     { 
+....................         output_high(M_CLK_PIN); 
+00EF:  BSF    03.5
+00F0:  BCF    05.0
+00F1:  BCF    03.5
+00F2:  BSF    05.0
+....................          
+....................         overflowCount = -1; 
+00F3:  MOVLW  FF
+00F4:  MOVWF  4B
+00F5:  MOVWF  4A
+....................         cycleNumber = -1; 
+00F6:  MOVWF  4C
+....................          
+....................         output_drive(M_R_PIN); 
+00F7:  BSF    03.5
+00F8:  BCF    05.1
+....................         output_high(M_R_PIN); 
+00F9:  BCF    05.1
+00FA:  BCF    03.5
+00FB:  BSF    05.1
+....................          
+....................         shiftCount = DISPLAY_BITS - 1; 
+00FC:  MOVLW  03
+00FD:  MOVWF  4D
+00FE:  BSF    03.5
+....................     } 
+....................     overflowCount++; 
+00FF:  BCF    03.5
+0100:  INCF   4A,F
+0101:  BTFSC  03.2
+0102:  INCF   4B,F
+0103:  BCF    0B.2
+0104:  BCF    0A.3
+0105:  GOTO   01E
+.................... } 
+....................  
+.................... /*-------------------------- Application ---------------------------*/ 
+.................... void main(void) 
+*
+011F:  MOVF   03,W
+0120:  ANDLW  1F
+0121:  MOVWF  03
+0122:  BSF    03.5
+0123:  BSF    0E.3
+0124:  BCF    03.5
+0125:  CLRF   48
+0126:  MOVF   48,W
+0127:  MOVWF  49
+0128:  CLRF   4B
+0129:  CLRF   4A
+012A:  MOVLW  FF
+012B:  MOVWF  4C
+012C:  MOVLW  03
+012D:  MOVWF  4D
+012E:  CLRF   4F
+012F:  MOVLW  B1
+0130:  MOVWF  4E
+0131:  CLRF   51
+0132:  MOVLW  B9
+0133:  MOVWF  50
+0134:  MOVLW  01
+0135:  MOVWF  52
+0136:  MOVLW  07
+0137:  MOVWF  1F
+0138:  BCF    03.7
+.................... { 
+.................... /*---------------------------- Setup -------------------------------*/ 
+....................     // Initialize the order_from_slave with no orders 
+....................     for(u8 i=0;i<SLAVES;i++) 
+0139:  CLRF   53
+013A:  MOVF   53,W
+013B:  SUBLW  0F
+013C:  BTFSS  03.0
+013D:  GOTO   14F
+....................     { 
+....................         order_from_slave[i][UP_REQUEST]=HIGH; 
+013E:  BCF    03.0
+013F:  RLF    53,W
+0140:  ADDLW  28
+0141:  MOVWF  04
+0142:  BCF    03.7
+0143:  MOVLW  01
+0144:  MOVWF  00
+....................         order_from_slave[i][DOWN_REQUEST]=HIGH; 
+0145:  BCF    03.0
+0146:  RLF    53,W
+0147:  ADDLW  01
+0148:  ADDLW  28
+0149:  MOVWF  04
+014A:  BCF    03.7
+014B:  MOVLW  01
+014C:  MOVWF  00
+014D:  INCF   53,F
+014E:  GOTO   13A
+....................     } 
+....................  
+....................     set_tris_a(PORTA_DIRECTION); 
+014F:  MOVLW  00
+0150:  BSF    03.5
+0151:  MOVWF  05
+....................     /*master read pin*/ 
+....................     output_high(M_R_PIN); 
+0152:  BCF    05.1
+0153:  BCF    03.5
+0154:  BSF    05.1
+....................     /*master clock pin*/ 
+....................     output_high(M_CLK_PIN); 
+0155:  BSF    03.5
+0156:  BCF    05.0
+0157:  BCF    03.5
+0158:  BSF    05.0
+....................     /*master write pin*/ 
+....................     output_low(M_W_PIN); 
+0159:  BSF    03.5
+015A:  BCF    05.2
+015B:  BCF    03.5
+015C:  BCF    05.2
+....................      
+....................     set_tris_b(PORTB_DIRECTION); 
+015D:  MOVLW  07
+015E:  BSF    03.5
+015F:  MOVWF  06
+....................     setPullup_b(); 
+0160:  BCF    03.5
+0161:  GOTO   106
+....................     output_low(TEST_LED); 
+0162:  BSF    03.5
+0163:  BCF    06.3
+0164:  BCF    03.5
+0165:  BCF    06.3
+....................     if(get_tris_b()==0) 
+0166:  BSF    03.5
+0167:  MOVF   06,W
+0168:  BTFSS  03.2
+0169:  GOTO   16E
+....................     { 
+....................         output_high(TEST_LED); 
+016A:  BCF    06.3
+016B:  BCF    03.5
+016C:  BSF    06.3
+016D:  BSF    03.5
+....................     } 
+....................     /*charging slaves caps*/ 
+....................     delay_ms(1000); 
+016E:  MOVLW  04
+016F:  BCF    03.5
+0170:  MOVWF  54
+0171:  MOVLW  FA
+0172:  MOVWF  55
+0173:  CALL   10A
+0174:  DECFSZ 54,F
+0175:  GOTO   171
+....................      
+....................     setup_timer_0(T0_INTERNAL|PRESCALER|T0_8_BIT); 
+0176:  BSF    03.5
+0177:  MOVF   01,W
+0178:  ANDLW  C7
+0179:  IORLW  08
+017A:  MOVWF  01
+....................     enable_interrupts(GLOBAL); 
+017B:  MOVLW  C0
+017C:  BCF    03.5
+017D:  IORWF  0B,F
+....................     enable_interrupts(INT_TIMER0); 
+017E:  BSF    0B.5
+....................     set_timer0(TIMER_PRELOAD); 
+017F:  MOVLW  CE
+0180:  MOVWF  01
+....................      
+....................      
+....................  
+.................... /*--------------------------- MAIN LOOP ----------------------------*/ 
+....................     while(TRUE) 
+....................     { 
+....................          if(input_state(UP_PIN)==LOW) 
+0181:  BTFSC  06.0
+0182:  GOTO   190
+....................         { 
+....................             while(input_state(UP_PIN)==LOW); 
+0183:  BTFSS  06.0
+0184:  GOTO   183
+....................             //for bouncing 
+....................             delay_ms(50); 
+0185:  MOVLW  32
+0186:  MOVWF  55
+0187:  CALL   10A
+....................             stopFlag = FALSE; 
+0188:  CLRF   52
+....................             preFloor = floorNumber; 
+0189:  MOVF   48,W
+018A:  MOVWF  49
+....................              
+....................             if(floorNumber < (SLAVES - 1)) 
+018B:  MOVF   48,W
+018C:  SUBLW  0E
+018D:  BTFSC  03.0
+....................             { 
+....................                 floorNumber++; 
+018E:  INCF   48,F
+....................             } 
+....................         } 
+018F:  GOTO   1CF
+....................         else if(input_state(DOWN_PIN)==LOW) 
+0190:  BTFSC  06.2
+0191:  GOTO   19E
+....................         { 
+....................             while(input_state(DOWN_PIN)==LOW); 
+0192:  BTFSS  06.2
+0193:  GOTO   192
+....................             //for bouncing 
+....................             delay_ms(50); 
+0194:  MOVLW  32
+0195:  MOVWF  55
+0196:  CALL   10A
+....................             stopFlag = FALSE; 
+0197:  CLRF   52
+....................             preFloor = floorNumber; 
+0198:  MOVF   48,W
+0199:  MOVWF  49
+....................             if(floorNumber > 0) 
+019A:  MOVF   48,F
+019B:  BTFSS  03.2
+....................             { 
+....................                 floorNumber--; 
+019C:  DECF   48,F
+....................             } 
+....................         } 
+019D:  GOTO   1CF
+....................         else if(input_state(STOP_PIN)==LOW) 
+019E:  BTFSC  06.1
+019F:  GOTO   1CF
+....................         { 
+....................             while(input_state(STOP_PIN)==LOW); 
+01A0:  BTFSS  06.1
+01A1:  GOTO   1A0
+....................             //for bouncing 
+....................             delay_ms(50); 
+01A2:  MOVLW  32
+01A3:  MOVWF  55
+01A4:  CALL   10A
+....................             stopFlag = TRUE; 
+01A5:  MOVLW  01
+01A6:  MOVWF  52
+....................             if(preFloor < floorNumber)   
+01A7:  MOVF   48,W
+01A8:  SUBWF  49,W
+01A9:  BTFSC  03.0
+01AA:  GOTO   1B3
+....................             { 
+....................                 /*up direction*/ 
+....................                order_from_slave[floorNumber][UP_REQUEST]=HIGH;  
+01AB:  BCF    03.0
+01AC:  RLF    48,W
+01AD:  ADDLW  28
+01AE:  MOVWF  04
+01AF:  BCF    03.7
+01B0:  MOVLW  01
+01B1:  MOVWF  00
+....................             } 
+01B2:  GOTO   1CF
+....................             else if(preFloor > floorNumber) 
+01B3:  MOVF   49,W
+01B4:  SUBWF  48,W
+01B5:  BTFSC  03.0
+01B6:  GOTO   1C0
+....................             { 
+....................                 /*down direction*/ 
+....................                 order_from_slave[floorNumber][DOWN_REQUEST]=HIGH; 
+01B7:  BCF    03.0
+01B8:  RLF    48,W
+01B9:  ADDLW  01
+01BA:  ADDLW  28
+01BB:  MOVWF  04
+01BC:  BCF    03.7
+01BD:  MOVLW  01
+01BE:  MOVWF  00
+....................             } 
+01BF:  GOTO   1CF
+....................             else 
+....................             { 
+....................                 /*last or first floor */ 
+....................                 order_from_slave[floorNumber][UP_REQUEST]=HIGH; 
+01C0:  BCF    03.0
+01C1:  RLF    48,W
+01C2:  ADDLW  28
+01C3:  MOVWF  04
+01C4:  BCF    03.7
+01C5:  MOVLW  01
+01C6:  MOVWF  00
+....................                 order_from_slave[floorNumber][DOWN_REQUEST]=HIGH; 
+01C7:  BCF    03.0
+01C8:  RLF    48,W
+01C9:  ADDLW  01
+01CA:  ADDLW  28
+01CB:  MOVWF  04
+01CC:  BCF    03.7
+01CD:  MOVLW  01
+01CE:  MOVWF  00
+....................             } 
+....................         } 
+01CF:  GOTO   181
+....................     } 
+.................... } 
+01D0:  SLEEP
+
+Configuration Fuses:
+   Word  1: 3F50   NOWDT PUT INTRC_IO NOMCLR BROWNOUT NOLVP NOCPD NOPROTECT
