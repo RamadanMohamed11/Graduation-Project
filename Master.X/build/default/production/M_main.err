@@ -1,0 +1,5 @@
+D:\Elevator\bus\code\current_working_code\works_soon_04\Master.X\M_main.c:42:13:  Warning#225  Duplicate #define
+D:\Elevator\bus\code\current_working_code\works_soon_04\Master.X\M_main.c:43:14:  Warning#225  Duplicate #define
+      Memory usage:   ROM=23%      RAM=26% - 27%
+      0 Errors,  2 Warnings.
+Build Successful.
